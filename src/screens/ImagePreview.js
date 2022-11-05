@@ -3,13 +3,29 @@ import {Text,View,Image,TouchableOpacity,Alert,BackHandler,Dimensions} from 'rea
 import { FontAwesome ,AntDesign} from '@expo/vector-icons';
 import * as MediaLibrary from 'expo-media-library';
 import * as FileSystem from 'expo-file-system';
-
-
+import {useDispatch,useSelector} from 'react-redux'
+import {fetchResponse} from "./../redux/request/requestActions" 
 
 export default function ImagePreview({route,navigation}){
     const {width,height} =Dimensions.get("window")
     const { imageUri,source } = route.params;
-    console.log(imageUri);
+    const dispatch = useDispatch()
+    const fetchingResponse = useSelector(state=>state.req.fetchingResponse);
+    const fetchedResponse = useSelector(state=>state.req.fetchedResponse);
+    const fetchError = useSelector(state=>state.req.fetchResponseError);
+
+
+    useEffect(()=>{
+        console.log("Fetching state change")
+    },[fetchingResponse])
+
+    useEffect(()=>{
+        console.log("Fetched response",fetchedResponse)
+    },[fetchedResponse])
+
+    useEffect(()=>{
+        console.log("Fetched response",fetchError)
+    },[fetchError])
 
     {/*Function to delete image when action other than save is performed on the image */}
     function handleBackButtonClick() {
@@ -38,17 +54,31 @@ export default function ImagePreview({route,navigation}){
 
     //function to save image in the gallery
     async function SaveandUpload(){
+       
         try {
-        
-            const asset = await MediaLibrary.createAssetAsync(imageUri);
-            const album = await MediaLibrary.getAlbumAsync('CasavaClassification');
+            const mediaPerm = await MediaLibrary.requestPermissionsAsync()
+           
+            if(mediaPerm.status=="granted"){
+
+               
+                const album = await MediaLibrary.getAlbumAsync('CasavaImages');
+             
+                const asset = await MediaLibrary.createAssetAsync(imageUri);
 
                 if (album == null) {
-                    await MediaLibrary.createAlbumAsync('CasavaClassification', asset, false);
-                  } else {
-                    await MediaLibrary.addAssetsToAlbumAsync([asset], album, false);
-                    Alert.alert('Image Saved to gallery')
-                  }
+                    console.log("album created",asset)
+                    const album = await MediaLibrary.createAlbumAsync('CasavaImages', asset, false);
+                   
+                }else{
+                        
+                        const nasset =await MediaLibrary.addAssetsToAlbumAsync([asset], album, false);
+                        console.log(asset,nasset)
+                        Alert.alert('Image Saved to gallery')
+                        dispatch(fetchResponse({image:imageUri}))
+                    }
+                }else{
+                    Alert.alert("Media permission required !","To store image information, permission must be granted")
+                }
           } catch (e) {
             console.log(e);
         }
@@ -73,7 +103,7 @@ export default function ImagePreview({route,navigation}){
                     
                     </TouchableOpacity>
 
-                    <TouchableOpacity style={{flex:0.5,padding:5,borderWidth:0.4}} onPress={SaveandUpload}>
+                    <TouchableOpacity style={{flex:0.5,padding:5,borderWidth:0.4}} onPress={()=>{SaveandUpload(dispatch)}}>
                         <FontAwesome name="cloud-upload" size={25} color="black" style={{alignSelf:'center'}} />
                         <Text style={{alignSelf:'center'}}>Upload and Continue</Text>
                     </TouchableOpacity>

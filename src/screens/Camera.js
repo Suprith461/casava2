@@ -11,16 +11,14 @@ import * as MediaLibrary from 'expo-media-library';
 export default function CameraDemo({navigation}){
     const isFocused = useIsFocused()
     const [captured,setCaptured]=useState(false)
-    const [hasPermission, setHasPermission] = useState(null);
+    //const [hasPermission, setHasPermission] = useState(null);
     const [camera,setCamera]=useState(null);
     const [flashStatus,setFlashStatus]=useState(Camera.Constants.FlashMode.off)
-    const [camrollPermission,setCamRollPermission] = useState(null);
+    const [permission, requestPermission] = Camera.useCameraPermissions();
 
   async function askPermission(){
-    const { status } = await Camera.requestPermissionsAsync();
-    const camrollPermission1=await MediaLibrary.requestPermissionsAsync()
-    setCamRollPermission(camrollPermission1.status==='granted')
-    setHasPermission(status === 'granted');
+    await MediaLibrary.requestPermissionsAsync()
+   
   }
 
   useEffect(() => {
@@ -44,6 +42,7 @@ function handleFlash(){
       camera.pausePreview()
       setCaptured(true)
       let photo = await camera.takePictureAsync({skipProcessing:true});
+      const asset = await MediaLibrary.createAssetAsync(photo.uri);
       setCaptured(false)
       navigation.navigate('PhotoPreview',{imageUri:photo.uri,source:'captured'})
   
@@ -60,13 +59,13 @@ function handleFlash(){
   }
 
   
-  if (hasPermission === null) {
+  if (permission === null) {
      Alert.alert("Permission required!");
      askPermission()
 
     return <View />;
   }
-  if (hasPermission === false) {
+  if (permission == null) {
       console.log('No access to camera')
     return <Text>No access to camera</Text>;
   }
