@@ -42,7 +42,7 @@ function handleFlash(){
       camera.pausePreview()
       setCaptured(true)
       let photo = await camera.takePictureAsync({skipProcessing:true});
-      const asset = await MediaLibrary.createAssetAsync(photo.uri);
+    
       setCaptured(false)
       navigation.navigate('PhotoPreview',{imageUri:photo.uri,source:'captured'})
   

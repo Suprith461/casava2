@@ -5,6 +5,9 @@ import * as FileSystem from 'expo-file-system';
 import RNFetchBlob from 'rn-fetch-blob';
 
 
+
+
+
 export function fetchResponseRequest(data){
     return{
         type:FETCH_RESPONSE_REQUEST,
@@ -27,46 +30,36 @@ export function fetchResponseFailure(data){
 /*api token
 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
 */
+    async function query(data){
+        let options = { encoding: FileSystem.EncodingType.Base64 };
+        const fileString = await FileSystem.readAsStringAsync(data,options)
+        
+        const res = await RNFetchBlob.fetch('POST', "https://api-inference.huggingface.co/models/siddharth963/vit-base-patch16-224-in21k-finetuned-cassava3", {
+        'Authorization': "Bearer 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",
+        'Content-Type' : 'application/octet-stream',
+        'Accept': 'application/json'
+        
+        
+        },fileString)
+       
+        return res.text()
+    }
 
-async function query(data) {
-    
-    
-    const fileString = await FileSystem.readAsStringAsync(data)
-    console.log(fileString)
 
-    console.log("Data1",data)
-    //const data1 = await FileSystem.readAsStringAsync(data)
-	const response = await fetch(
-		"https://api-inference.huggingface.co/models/siddharth963/vit-base-patch16-224-in21k-finetuned-cassava3",
-		{
-			headers: {'Accept': 'application/json', 'Authorization': "Bearer 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",'Content-Type': 'image/jpeg' },
-			method: "POST",
-            body:fileString,
-            type: 'image/jpeg'
-		}
-	);
-	const result = await response.json();
-	return result;
-}
 
 
 export function fetchResponse(data){
     return(dispatch)=>{
         dispatch(fetchResponseRequest())
-        
-        
-        console.log("function reached",data)
-    
-        query(data.image).then((response) => {
-            console.log(JSON.stringify(response));
-            dispatch(fetchResponseSuccess(response.json))
-        })
-
-    
-
-
-      
-       
+        try{
+            query(data.image).then((response) => {
+                //console.log(JSON.stringify(response));
+                //console.log("Before dispatch",JSON.stringify(response))
+                dispatch(fetchResponseSuccess(response))
+            })    
+        }catch(err){
+            dispatch(fetchResponseFailure(err))
+        }
         
     }
 }

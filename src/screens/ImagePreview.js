@@ -1,10 +1,10 @@
-import React,{useEffect} from 'react';
-import {Text,View,Image,TouchableOpacity,Alert,BackHandler,Dimensions} from 'react-native';
+import React,{useEffect,useState} from 'react';
+import {Text,FlatList,View,Image,TouchableOpacity,Alert,BackHandler,Dimensions,Modal,ActivityIndicator} from 'react-native';
 import { FontAwesome ,AntDesign} from '@expo/vector-icons';
 import * as MediaLibrary from 'expo-media-library';
 import * as FileSystem from 'expo-file-system';
 import {useDispatch,useSelector} from 'react-redux'
-import {fetchResponse} from "./../redux/request/requestActions" 
+import {fetchResponse,fetchResponseFailure,fetchResponseSuccess} from "./../redux/request/requestActions" 
 
 export default function ImagePreview({route,navigation}){
     const {width,height} =Dimensions.get("window")
@@ -13,14 +13,25 @@ export default function ImagePreview({route,navigation}){
     const fetchingResponse = useSelector(state=>state.req.fetchingResponse);
     const fetchedResponse = useSelector(state=>state.req.fetchedResponse);
     const fetchError = useSelector(state=>state.req.fetchResponseError);
-
-
+    const [showResWindow,setShowResWindow] = useState(false);
+    
     useEffect(()=>{
-        console.log("Fetching state change")
+        dispatch(fetchResponseSuccess(null))
+        dispatch(fetchResponseFailure(null))
+        setShowResWindow(false)
+    },[navigation])
+    useEffect(()=>{
+        console.log("Fetching state change",fetchingResponse)
+       
     },[fetchingResponse])
 
     useEffect(()=>{
         console.log("Fetched response",fetchedResponse)
+        if(fetchedResponse!=null){
+            setShowResWindow(true)
+        }
+        
+        
     },[fetchedResponse])
 
     useEffect(()=>{
@@ -32,6 +43,9 @@ export default function ImagePreview({route,navigation}){
         if(source==='captured'){
             try{
                 FileSystem.deleteAsync(imageUri)
+                dispatch(fetchResponseSuccess(null))
+                dispatch(fetchResponseFailure(null))
+                setShowResWindow(false)
             }catch(e){
                 console.log(e);
             }
@@ -73,7 +87,6 @@ export default function ImagePreview({route,navigation}){
                         
                         const nasset =await MediaLibrary.addAssetsToAlbumAsync([asset], album, false);
                         console.log(asset,nasset)
-                        Alert.alert('Image Saved to gallery')
                         dispatch(fetchResponse({image:imageUri}))
                     }
                 }else{
@@ -84,8 +97,46 @@ export default function ImagePreview({route,navigation}){
         }
         return;
     }
-
+    function ItemsListElement({label,probability}){
+        
+        
+   
+        return(
+            <View style={{width:'98%',flexDirection:'row',backgroundColor:'white',elevation:10,borderRadius:5,marginHorizontal:5}}>
+                
+                <TouchableOpacity style={{flex:1,flexDirection:'row'}} onPress={()=>{setShowResWindow(false);}}>
+                
+                <View style={{width:'63%',margin:5}}>
     
+                        <Text style={{color:'black',fontSize:15,fontWeight:'400'}}>{label}</Text>                   
+                             
+                        <Text style={{fontSize:12,color:'red'}}>{probability.toString()}</Text>
+          
+                </View>
+                </TouchableOpacity>                    
+            </View> 
+        );
+        
+        }
+      
+
+    function ItemsFlatList({vars}){
+       
+        if(vars!=null){
+            var vars = JSON.parse(vars);
+            return(<View style={{flex:1}}>
+                        <FlatList
+                        data={vars}
+                        showsVerticalScrollIndicator ={false}
+                        renderItem={({item})=>{console.log(item);return <ItemsListElement label={item.label} probability={item.score}/>}}
+                        keyExtractor={(item) => {return item.label}}  
+                        />
+                    </View>   );
+        }else{
+            return null
+        }
+        
+    }  
 
 
     return(
@@ -109,6 +160,41 @@ export default function ImagePreview({route,navigation}){
                     </TouchableOpacity>
     
                 </View>
+                <Modal
+                    animationType="fade"
+                    transparent={true}
+                    visible={fetchingResponse}
+                    >
+
+                  
+                    <View style={{borderWidth:1,width:'100%',height:'100%',backgroundColor:'#00000080',alignItems:'center',flexDirection:'row'}}>
+                        <View style={{height:70,flexDirection:'row',backgroundColor:"white",width:'95%',justifyContent:'center',marginHorizontal:10}}>
+                            <ActivityIndicator size="large" color="orange" style={{alignSelf:'center',justifyContent:'center'}} />
+                            <Text style={{marginHorizontal:25,fontSize:20,alignSelf:'center'}}>{"Uploading..."}</Text>
+                        </View>    
+                    </View>
+                </Modal>
+
+                <Modal
+                    animationType="slide"
+                    transparent={true}
+                    visible={showResWindow}>
+
+                  
+                    <View style={{borderWidth:1,alignSelf:'center',width:'100%',height:'100%',backgroundColor:'#00000060'}}>
+                      
+                        <TouchableOpacity  style={{height:80}}></TouchableOpacity>
+                          
+                            <View style={{width:'90%',height:'75%',backgroundColor:'white',alignSelf:'center'}}>
+                                <ItemsFlatList vars = {fetchedResponse}/>                 
+                            
+                            </View>
+                
+                        <TouchableOpacity onPress={()=>{setShowResWindow(false)}} style={{height:80}}></TouchableOpacity>
+                            
+                    </View>
+                </Modal>                
+           
               
             </View>
     );

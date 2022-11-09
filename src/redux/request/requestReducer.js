@@ -3,7 +3,7 @@ import {
 } from './requestActionTypes'
 
 const initialState= {
-    fetchingrResponse:false,
+    fetchingResponse:false,
     fetchedResponse:null,
     fetchResponseError:null,
 }
